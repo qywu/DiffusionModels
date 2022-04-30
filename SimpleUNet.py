@@ -119,12 +119,10 @@ class OutConv(nn.Module):
 
 
 class SimpleUNet(nn.Module):
-    def __init__(self, in_size, t_range, img_depth):
+    def __init__(self, img_depth):
         super().__init__()
         self.beta_small = 1e-4
         self.beta_large = 0.02
-        self.t_range = t_range
-        self.in_size = in_size
 
         bilinear = True
         self.inc = DoubleConv(img_depth, 64)
@@ -144,6 +142,7 @@ class SimpleUNet(nn.Module):
         """
         Model is U-Net with added positional encodings and self-attention layers.
         """
+        t = t.unsqueeze(-1).type(torch.float)
         x1 = self.inc(x)
         x2 = self.down1(x1) + self.pos_encoding(t, 128, 16)
         x3 = self.down2(x2) + self.pos_encoding(t, 256, 8)
@@ -160,7 +159,7 @@ class SimpleUNet(nn.Module):
     def pos_encoding(self, t, channels, embed_size):
         inv_freq = 1.0 / (
             10000
-            ** (torch.arange(0, channels, 2, device=self.device).float() / channels)
+            ** (torch.arange(0, channels, 2, device=t.device).float() / channels)
         )
         pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
         pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
